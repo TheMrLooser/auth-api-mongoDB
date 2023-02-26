@@ -39,19 +39,18 @@ const RegisterUser = async (req, res) => {
 const PostPDF = async(req,res)=>{
     try {
         const {pdf,email,pdfAddress} = req.body
-        if (!pdf || !email) {
+        if (!pdf || !email|| !pdfAddress) {
           return res
             .status(500)
-            .json({ error: true, message: `Please provide 'pdf' and 'email' ` });
+            .json({ error: true, message: `Please provide 'pdf', 'email' and 'pdfAddress ` });
         }
-        const user =  await UserSchema.findById(email)
+        const user =  await UserSchema.findOne({email})
         if(!user){
             return res
             .status(401)
             .json({ error: true, message: `User not registerd` }); 
         }
-        
-        await UserSchema.findOneAndUpdate({email},{$set:{pdf,pdfAddress}})
+        await UserSchema.findOneAndUpdate({email:email},{pdf,pdfAddress})
         return res
       .status(200)
       .json({ success: true, message: `Pdf Saved in Database` });
