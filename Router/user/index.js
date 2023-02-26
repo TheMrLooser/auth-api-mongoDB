@@ -6,7 +6,7 @@ const userRouter = express.Router()
 
 userRouter.post('/register',RegisterUser)
 userRouter.post('/login',LoginUser)
-userRouter.post('/pdf',PostPDF)
+userRouter.post('/post-pdf',PostPDF)
 userRouter.get('/get-pdf',GetPDF)
 
 module.exports = userRouter
