@@ -1,75 +1,57 @@
 const UserSchema = require("../../Model/UserSchema");
 const bcrypt = require("bcryptjs");
+const jwt = require('jsonwebtoken')
 
 const RegisterUser = async (req, res) => {
   try {
-    const { email, password, phone, userName } = req.body;
-    if (!email || !phone || !password || !userName) {
+    const {walletAddress, email } = req.body;
+    if (!walletAddress || !email) {
       return res
         .status(500)
-        .json({ error: true, message: `Please fill all the required fields` });
+        .json({ error: true, message: `Please provide 'walletAddress' and 'email' ` });
     }
     const user = await UserSchema.findOne({ email });
+    const token = jwt.sign({id:walletAddress},process.env.SECRET)
     if (!user) {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedwalletAddress = await bcrypt.hash(walletAddress, 10);
       const newUser = new UserSchema({
-        userName,
-        email,
-        password: hashedPassword,
-        phone,
+        walletAddress:hashedwalletAddress,
+        email
       });
       await newUser.save();
       return res
-        .status(200)
-        .json({ success: true, message: "Profile Registerd" });
+      .status(200)
+      .json({ success: true, message: "Profile Registerd",token });
     }
-    return res
-      .status(404)
-      .json({ error: true, message: "User allready exist" });
+    const compairWalletAddress = await bcrypt.compare(walletAddress,user.walletAddress)
+    if(compairWalletAddress){
+        return res.status(200).json({success:true,message:"Login successfull",token })
+      }
+      return res.status(200).json({error:true,message:"Login failed : Wrong walletAddress" })
   } catch (error) {
     return res
       .status(500)
       .json({ error: true, message: `some internal error ${error}` });
   }
 };
-
-const LoginUser = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const user = await UserSchema.findOne({ email });
-    if (!user) {
-      return res.status(200).json({ error: true, message: "Wrong Email Id" });
-    }
-    const compairePassword = await bcrypt.compare(password, user.password);
-
-    if (!compairePassword) {
-      return res.status(200).json({ error: true, message: "Wrong Password" });
-    }
-    {
-       
-      return res
-        .status(200)
-        .json({ success: true, token: user.id, message:user });
-    }
-  } catch (error) {
-    return res
-      .status(401)
-      .json({ error: true, message: `Some Internal Error \n ${error}` });
-  }
-};
-
+ 
 
 const PostPDF = async(req,res)=>{
     try {
-        const {pdf,userId , address} = req.body
-        const user =  await UserSchema.findById(userId)
+        const {pdf,email,pdfAddress} = req.body
+        if (!pdf || !email) {
+          return res
+            .status(500)
+            .json({ error: true, message: `Please provide 'pdf' and 'email' ` });
+        }
+        const user =  await UserSchema.findById(email)
         if(!user){
             return res
             .status(401)
             .json({ error: true, message: `User not registerd` }); 
         }
         
-        await UserSchema.findByIdAndUpdate(userId,{$set:{address,pdf}})
+        await UserSchema.findOneAndUpdate({email},{$set:{pdf,pdfAddress}})
         return res
       .status(200)
       .json({ success: true, message: `Pdf Saved in Database` });
@@ -81,18 +63,18 @@ const PostPDF = async(req,res)=>{
 }
 const GetPDF = async(req,res)=>{
     try {
-        const {address} = req.body
+        const {pdfAddress} = req.body
         
-        if(!address){
+        if(!pdfAddress){
           return res
         .status(500)
-        .json({ error: true, message: `Please fill all the required fields` });
+        .json({ error: true, message: `Please provide 'pdfAddress'` });
         }
-        const user =  await UserSchema.findOne({address})
+        const user =  await UserSchema.findOne({pdfAddress})
         if(!user){
             return res
             .status(401)
-            .json({ error: true, message: `User not registerd` }); 
+            .json({ error: true, message: `Pdf note in database` }); 
         }
         
         return res
@@ -104,4 +86,4 @@ const GetPDF = async(req,res)=>{
       .json({ error: true, message: `Some Internal Error \n ${error}` });
     }
 }
-module.exports = { RegisterUser, LoginUser,PostPDF,GetPDF };
+module.exports = { RegisterUser,PostPDF,GetPDF };
